@@ -38,3 +38,7 @@ Usage of main.exe:
 main.exe -server=xxx.xxx.xxx.xxx:80
 ```
 
+#####
+> Now you can use thr Sock5 proxy client(such as proxifier),the sock5 proxy is :7777
+
+![avatar](images/img1.png)
