@@ -58,7 +58,7 @@ func handleTCP(tcp *net.TCPConn) {
 }
 func main() {
 
-	limitTime = flag.Int64("time", 60, "Tcp read limit time (minute)")
+	limitTime = flag.Int64("time", 1, "Tcp read limit time (minute)")
 	flag.Parse()
 
 	ta, err := net.ResolveTCPAddr("tcp4", ":80")
