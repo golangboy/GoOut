@@ -54,9 +54,9 @@ main.exe -server=xxx.xxx.xxx.xxx:80
 
 ### 在你的操作系统上使用GoOut客户端
 
-###### 在Win10上使用GoOut客户端 (GoOut使用Http代理模式)
-
 > 图中打码地址即为你的GoOut客户端所在地址
+
+###### 在Win10上使用GoOut客户端 (GoOut使用Http代理模式)
 
 ![avatar](images/Win10-http.png)
 
