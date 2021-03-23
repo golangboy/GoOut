@@ -69,9 +69,9 @@ func main() {
 
 	for {
 		client, err := tc.AcceptTCP()
-		if err == nil {
+		if err == nil && client != nil {
 			go handleTCP(client)
-		} else {
+		} else if client != nil {
 			client.Close()
 		}
 	}
