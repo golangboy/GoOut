@@ -153,3 +153,11 @@ func WriteHttpResponseWithCt(tcp *net.TCPConn, data []byte, contentType string) 
 	tcp.Write([]byte(payload))
 	tcp.Write(data)
 }
+
+func GetFirstIpByHost(host string) string {
+	ip, err := net.LookupIP(host)
+	if err == nil && len(ip) > 0 {
+		return ip[0].String()
+	}
+	return ""
+}

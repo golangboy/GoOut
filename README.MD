@@ -1,6 +1,6 @@
 ## GoOut
 
-这是一个可以将Tcp流量伪装成Http流量的程序,并可以提供HTTP代理端口和Sock5代理端口
+这是一个可以将Tcp流量伪装成Http流量的程序,并可以提供HTTP代理端口和Sock5代理端口,支持全局流量代理转发和局部流量代理转发
 
 ## 用法
 
@@ -30,6 +30,8 @@ go build main.go
 
 ```
 Usage of main.exe:
+  -global
+        是否开启全局模式,默认false,即默认只有国外流量走代理
   -http
         使用Http代理协议,默认false,即默认使用Sock5代理协议
   -server string
