@@ -158,8 +158,16 @@ func downLoadGeoLite2() {
 		io.Copy(fs, resp.Body)
 	}
 }
+
+var bdServer, bdVersion string
+
 func main() {
-	server = flag.String("server", "127.0.0.1:80", "GoOut服务端地址")
+	if len(bdServer) == 0 {
+		bdServer = "127.0.0.1:80"
+	}
+	fmt.Println("GoOut version", bdVersion)
+	fmt.Println("Server", bdServer)
+	server = flag.String("server", bdServer, "GoOut服务端地址")
 	limitTime = flag.Int64("time", 1, "TCP连接超时时间(分钟)")
 	httpMode = flag.Bool("http", false, "使用Http代理协议,默认false,即默认使用Sock5代理协议")
 	global = flag.Bool("global", false, "是否开启全局模式,默认false,即默认只有国外流量走代理")

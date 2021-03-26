@@ -1,0 +1,1 @@
+go build -ldflags "-X main.bdVersion=0.0.0 -X main.bdServer=127.0.0.1:80" .
