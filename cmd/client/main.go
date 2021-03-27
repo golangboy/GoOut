@@ -21,9 +21,9 @@ var global *bool
 var geoDb *geoip2.Reader
 
 func ioCopyWithTimeOut(dst net.Conn, src net.Conn, timeOut time.Duration) {
-	var buff [1048576]byte
+	var buff [10048576]byte
 	for {
-		src.SetReadDeadline(time.Now().Add(timeOut))
+		//src.SetReadDeadline(time.Now().Add(timeOut))
 		n, err := src.Read(buff[:])
 		if err != nil {
 			return
@@ -77,11 +77,12 @@ func OnProxy(conn net.Conn, host string, port string) {
 	//Recv from client,send to web server
 	go func(client net.Conn, webSer *net.TCPConn) {
 		for {
-			var buff [1048576]byte
-			client.SetReadDeadline(time.Now().Add(time.Second * 10))
+			var buff [10048576]byte
+			client.SetReadDeadline(time.Now().Add(time.Second * 300))
 			n, err := client.Read(buff[:])
 			if err != nil {
 				client.Close()
+				webTcp.Close()
 				return
 			}
 			utils.WriteHttpRequest(webSer, "/send", buff[:n])

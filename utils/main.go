@@ -22,15 +22,16 @@ func ParseHttpResponse(reader net.Conn, ioBuffer *bytes.Buffer) (httpResponse, b
 	var ret httpResponse
 	var buff bytes.Buffer
 	var contentLength int
-	var tmp [1048576]byte
+	var tmp [10048576]byte
 	timeOut := time.Duration(13 * time.Second)
+	_ = timeOut
 	for {
 		var n int
 		var err error
 		if ioBuffer.Len() > 0 {
 			n, err = ioBuffer.Read(tmp[:])
 		} else {
-			reader.SetReadDeadline(time.Now().Add(timeOut))
+			//reader.SetReadDeadline(time.Now().Add(timeOut))
 			n, err = reader.Read(tmp[:])
 			if err != nil {
 				return ret, false
@@ -74,7 +75,7 @@ func ParseHttpResponse(reader net.Conn, ioBuffer *bytes.Buffer) (httpResponse, b
 		} else {
 			minSize = needRs
 		}
-		reader.SetReadDeadline(time.Now().Add(timeOut))
+		//reader.SetReadDeadline(time.Now().Add(timeOut))
 		n, err := reader.Read(tmp[:minSize])
 
 		if err != nil {
@@ -94,15 +95,16 @@ func ParseHttpRequest(reader net.Conn, ioBuffer *bytes.Buffer) (httpReq, bool) {
 	var ret httpReq
 	var buff bytes.Buffer
 	var contentLength int
-	var tmp [1048576]byte
+	var tmp [10048576]byte
 	timeOut := time.Duration(13 * time.Second)
+	_ = timeOut
 	for {
 		var n int
 		var err error
 		if ioBuffer.Len() > 0 {
 			n, err = ioBuffer.Read(tmp[:])
 		} else {
-			reader.SetReadDeadline(time.Now().Add(timeOut))
+			//reader.SetReadDeadline(time.Now().Add(timeOut))
 			n, err = reader.Read(tmp[:])
 			if err != nil {
 				return ret, false
@@ -146,7 +148,7 @@ func ParseHttpRequest(reader net.Conn, ioBuffer *bytes.Buffer) (httpReq, bool) {
 		} else {
 			minSize = needRs
 		}
-		reader.SetReadDeadline(time.Now().Add(timeOut))
+		//reader.SetReadDeadline(time.Now().Add(timeOut))
 		n, err := reader.Read(tmp[:minSize])
 
 		if err != nil {
