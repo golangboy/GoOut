@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"flag"
 	"fmt"
 	"github.com/blacknight2018/GoOut/utils"
@@ -20,7 +21,7 @@ var global *bool
 var geoDb *geoip2.Reader
 
 func ioCopyWithTimeOut(dst net.Conn, src net.Conn, timeOut time.Duration) {
-	var buff [10240]byte
+	var buff [1048576]byte
 	for {
 		src.SetReadDeadline(time.Now().Add(timeOut))
 		n, err := src.Read(buff[:])
@@ -41,11 +42,12 @@ func OnDirect(conn net.Conn, host string, port string) {
 		conn.Close()
 		return
 	}
-	go ioCopyWithTimeOut(remote, conn, time.Minute*(time.Duration(*limitTime)))
-	ioCopyWithTimeOut(conn, remote, time.Minute*(time.Duration(*limitTime)))
+	go ioCopyWithTimeOut(remote, conn, time.Second*(10))
+	ioCopyWithTimeOut(conn, remote, time.Second*(10))
 
 }
 func OnProxy(conn net.Conn, host string, port string) {
+	var ioBuffer bytes.Buffer
 	//Connect to web proxy server
 	tcpAddr, err := net.ResolveTCPAddr("tcp4", *server)
 	if err != nil {
@@ -59,7 +61,7 @@ func OnProxy(conn net.Conn, host string, port string) {
 	}
 	//Request connect target
 	utils.WriteHttpRequest(webTcp, "/conn", []byte(host+":"+port))
-	req, ok := utils.ParseHttpRequest(webTcp, time.Minute*(time.Duration(*limitTime)))
+	req, ok := utils.ParseHttpResponse(webTcp, &ioBuffer)
 	if !ok {
 		conn.Close()
 		webTcp.Close()
@@ -75,8 +77,8 @@ func OnProxy(conn net.Conn, host string, port string) {
 	//Recv from client,send to web server
 	go func(client net.Conn, webSer *net.TCPConn) {
 		for {
-			var buff [1024]byte
-			client.SetReadDeadline(time.Now().Add(time.Minute * (time.Duration(*limitTime))))
+			var buff [1048576]byte
+			client.SetReadDeadline(time.Now().Add(time.Second * 10))
 			n, err := client.Read(buff[:])
 			if err != nil {
 				client.Close()
@@ -88,7 +90,7 @@ func OnProxy(conn net.Conn, host string, port string) {
 
 	//Recv from web server, send to local proxy client
 	for {
-		req, ok = utils.ParseHttpRequest(webTcp, time.Minute*(time.Duration(*limitTime)))
+		req, ok = utils.ParseHttpResponse(webTcp, &ioBuffer)
 		if !ok {
 			webTcp.Close()
 			conn.Close()
@@ -128,6 +130,7 @@ func StartSock5ProxyServer() {
 	s.TcpConnect = func(conn net.Conn, host string, port string) {
 		ip := utils.GetFirstIpByHost(host)
 		if *global {
+			fmt.Println(host)
 			OnProxy(conn, host, port)
 			return
 		}
@@ -168,9 +171,9 @@ func main() {
 	fmt.Println("GoOut version", bdVersion)
 	fmt.Println("Server", bdServer)
 	server = flag.String("server", bdServer, "GoOut服务端地址")
-	limitTime = flag.Int64("time", 1, "TCP连接超时时间(分钟)")
+	//limitTime = flag.Int64("time", 20, "TCP连接超时时间(秒)")
 	httpMode = flag.Bool("http", false, "使用Http代理协议,默认false,即默认使用Sock5代理协议")
-	global = flag.Bool("global", false, "是否开启全局模式,默认false,即默认只有国外流量走代理")
+	global = flag.Bool("global", true, "是否开启全局模式,默认false,即默认只有国外流量走代理")
 	flag.Parse()
 	if server == nil || len(*server) == 0 {
 		return

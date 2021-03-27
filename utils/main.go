@@ -1,159 +1,186 @@
 package utils
 
 import (
+	"bytes"
 	"net"
 	"strconv"
 	"strings"
 	"time"
 )
 
-type httpReqHeader struct {
-	Method  string
-	Url     string
-	Version string
-	Headers []string
-	Raw     string
-	Body    []byte
+type httpReq struct {
+	Url  string
+	Raw  string
+	Body []byte
+}
+type httpResponse struct {
+	Raw  string
+	Body []byte
 }
 
-func ReadStringUntil(reader net.Conn, token string, timeOut time.Duration) (string, bool) {
-	var t [1]byte
-	var pos int
-	var tmp string
+func ParseHttpResponse(reader net.Conn, ioBuffer *bytes.Buffer) (httpResponse, bool) {
+	var ret httpResponse
+	var buff bytes.Buffer
+	var contentLength int
+	var tmp [1048576]byte
+	timeOut := time.Duration(13 * time.Second)
 	for {
-		reader.SetReadDeadline(time.Now().Add(timeOut))
-		_, err := reader.Read(t[:])
-		tmp = tmp + string(t[:])
-		if err != nil {
-			return "", false
-		}
-		if t[0] == token[pos] {
-			pos = pos + 1
-		} else {
-			pos = 0
-		}
-		if pos == len(token) {
-			break
-		}
-
-	}
-	return tmp[:len(tmp)-len(token)], true
-}
-func GetHttpKey(s string) string {
-	r := strings.Split(s, ": ")
-	if len(r) != 2 {
-		return ""
-	}
-	return r[0]
-}
-func GetHttpValue(s string) string {
-	r := strings.Split(s, ": ")
-	if len(r) != 2 {
-		return ""
-	}
-	return r[1]
-}
-func ParseHttpRequest(reader net.Conn, timeOut time.Duration) (httpReqHeader, bool) {
-	var ret httpReqHeader
-	var buff = make([]byte, 1024)
-	method, ok := ReadStringUntil(reader, " ", timeOut)
-	if !ok {
-		reader.SetReadDeadline(time.Now().Add(timeOut))
-
-		reader.Read(buff[:])
-		ret.Raw = ret.Raw + string(buff[:])
-		return ret, false
-	}
-	ret.Method = method
-	ret.Raw = ret.Raw + ret.Method + " "
-
-	u, ok := ReadStringUntil(reader, " ", timeOut)
-
-	//http://xxx.xxx/abc -> /abc
-	if len(u) >= 7 && u[:4] == "http" {
-		u = u[7:]
-		pos := strings.Index(u, "/")
-		if pos != -1 {
-			u = u[pos:]
-		}
-	}
-	if !ok {
-		reader.SetReadDeadline(time.Now().Add(time.Second * 3 * 60))
-		reader.Read(buff[:])
-		ret.Raw = ret.Raw + string(buff[:])
-		return ret, false
-	}
-	ret.Raw = ret.Raw + u + " "
-	ret.Url = u
-	v, ok := ReadStringUntil(reader, "\r\n", timeOut)
-	if !ok {
-		reader.SetReadDeadline(time.Now().Add(time.Second * 3 * 60))
-		reader.Read(buff[:])
-		ret.Raw = ret.Raw + string(buff[:])
-		return ret, false
-	}
-	ret.Raw = ret.Raw + v + "\r\n"
-	ret.Version = v
-	var needRead int
-	for {
-		head, ok := ReadStringUntil(reader, "\r\n", timeOut)
-		ret.Raw = ret.Raw + head + "\r\n"
-		if !ok {
-			break
-		}
-		if len(head) == 0 {
-			break
-		}
-		if strings.ToLower(GetHttpKey(head)) == "content-length" {
-			tmp := GetHttpValue(head)
-			needRead, _ = strconv.Atoi(tmp)
-		}
-		ret.Headers = append(ret.Headers, head)
-	}
-	for {
-		var buff [1024]byte
 		var n int
 		var err error
-		if needRead > 1024 {
-			reader.SetReadDeadline(time.Now().Add(time.Second * 3 * 60))
-			n, err = reader.Read(buff[:])
-			needRead = needRead - 1024
+		if ioBuffer.Len() > 0 {
+			n, err = ioBuffer.Read(tmp[:])
 		} else {
-			reader.SetReadDeadline(time.Now().Add(time.Second * 3 * 60))
-			n, err = reader.Read(buff[:needRead])
-			needRead = needRead - n
+			reader.SetReadDeadline(time.Now().Add(timeOut))
+			n, err = reader.Read(tmp[:])
+			if err != nil {
+				return ret, false
+			}
 		}
-		if err != nil {
-			break
-		}
-		ret.Body = append(ret.Body, buff[:n]...)
-		if needRead == 0 {
+
+		buff.Write(tmp[:n])
+		//Http Header End Flag
+		str := buff.String()
+		pos := strings.Index(str, "\r\n\r\n")
+		if pos != -1 {
+			ret.Raw = str[:pos]
 			break
 		}
 	}
+	//Get Content-Length
+	str := buff.String()
+	pos := strings.Index(str, "Content-Length")
+	if pos == -1 {
+		return ret, false
+	}
+	for j := pos; j < len(str); j++ {
+		if str[j] == '\r' {
+			break
+		} else if str[j] >= '0' && str[j] <= '9' {
+			contentLength = contentLength*10 + (int(str[j] - '0'))
+		}
+	}
+	var needRs int
+	curHttpTotal := len(ret.Raw) + 4 + contentLength
+	if buff.Len() > curHttpTotal {
+		ioBuffer.Write(buff.Bytes()[curHttpTotal:])
+		ret.Body = buff.Bytes()[len(ret.Raw)+4 : curHttpTotal]
+		return ret, true
+	}
+	needRs = (curHttpTotal) - buff.Len()
+	for needRs > 0 {
+		var minSize int
+		if needRs > len(tmp) {
+			minSize = len(tmp)
+		} else {
+			minSize = needRs
+		}
+		reader.SetReadDeadline(time.Now().Add(timeOut))
+		n, err := reader.Read(tmp[:minSize])
+
+		if err != nil {
+			return ret, false
+		}
+		buff.Write(tmp[:n])
+		needRs = needRs - n
+		if needRs == 0 {
+			break
+		}
+
+	}
+	ret.Body = buff.Bytes()[len(ret.Raw)+4:]
 	return ret, true
 }
-func WriteHttpRequest(tcp *net.TCPConn, path string, data []byte) {
+func ParseHttpRequest(reader net.Conn, ioBuffer *bytes.Buffer) (httpReq, bool) {
+	var ret httpReq
+	var buff bytes.Buffer
+	var contentLength int
+	var tmp [1048576]byte
+	timeOut := time.Duration(13 * time.Second)
+	for {
+		var n int
+		var err error
+		if ioBuffer.Len() > 0 {
+			n, err = ioBuffer.Read(tmp[:])
+		} else {
+			reader.SetReadDeadline(time.Now().Add(timeOut))
+			n, err = reader.Read(tmp[:])
+			if err != nil {
+				return ret, false
+			}
+		}
+
+		buff.Write(tmp[:n])
+		//Http Header End Flag
+		str := buff.String()
+		pos := strings.Index(str, "\r\n\r\n")
+		if pos != -1 {
+			ret.Raw = str[:pos]
+
+			spl := strings.Split(ret.Raw, "\r\n")
+			ret.Url = strings.Split(spl[0], " ")[1]
+			break
+		}
+	}
+	//Get Content-Length
+	str := buff.String()
+	pos := strings.Index(str, "Content-Length")
+	for j := pos; j < len(str); j++ {
+		if str[j] == '\r' {
+			break
+		} else if str[j] >= '0' && str[j] <= '9' {
+			contentLength = contentLength*10 + (int(str[j] - '0'))
+		}
+	}
+	var needRs int
+	curHttpTotal := len(ret.Raw) + 4 + contentLength
+	if buff.Len() > curHttpTotal {
+		ioBuffer.Write(buff.Bytes()[curHttpTotal:])
+		ret.Body = buff.Bytes()[len(ret.Raw)+4 : curHttpTotal]
+		return ret, true
+	}
+	needRs = (curHttpTotal) - buff.Len()
+	for needRs > 0 {
+		var minSize int
+		if needRs > len(tmp) {
+			minSize = len(tmp)
+		} else {
+			minSize = needRs
+		}
+		reader.SetReadDeadline(time.Now().Add(timeOut))
+		n, err := reader.Read(tmp[:minSize])
+
+		if err != nil {
+			return ret, false
+		}
+		buff.Write(tmp[:n])
+		needRs = needRs - n
+		if needRs == 0 {
+			break
+		}
+	}
+	ret.Body = buff.Bytes()[len(ret.Raw)+4:]
+	return ret, true
+}
+func WriteHttpRequest(tcp *net.TCPConn, path string, data []byte) (int, error) {
 	payload := "POST XXX HTTP/1.1\r\nConnection: keep-alive\r\nContent-Length: YYY\r\nContent-Type: application/octet-stream\r\n\r\n"
 	payload = strings.ReplaceAll(payload, "XXX", path)
 	payload = strings.ReplaceAll(payload, "YYY", strconv.Itoa(len(data)))
 	tcp.Write([]byte(payload))
-	tcp.Write(data)
+	return tcp.Write(data)
 }
-func WriteHttpResponse(tcp *net.TCPConn, data []byte) {
+func WriteHttpResponse(tcp *net.TCPConn, data []byte) (int, error) {
 	payload := "HTTP/1.1 200 OK\r\nContent-Type: application/octet-stream\r\nContent-Length: xxx\r\n\r\n"
 	payload = strings.ReplaceAll(payload, "xxx", strconv.Itoa(len(data)))
 	tcp.Write([]byte(payload))
-	tcp.Write(data)
+	return tcp.Write(data)
 }
-func WriteHttpResponseWithCt(tcp *net.TCPConn, data []byte, contentType string) {
+func WriteHttpResponseWithCt(tcp *net.TCPConn, data []byte, contentType string) (int, error) {
 	payload := "HTTP/1.1 200 OK\r\nContent-Type: yyy\r\nContent-Length: xxx\r\n\r\n"
 	payload = strings.ReplaceAll(payload, "xxx", strconv.Itoa(len(data)))
 	payload = strings.ReplaceAll(payload, "yyy", contentType)
 	tcp.Write([]byte(payload))
-	tcp.Write(data)
+	return tcp.Write(data)
 }
-
 func GetFirstIpByHost(host string) string {
 	ip, err := net.LookupIP(host)
 	if err == nil && len(ip) > 0 {

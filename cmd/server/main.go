@@ -1,8 +1,10 @@
 package main
 
 import (
+	"bytes"
 	"flag"
 	"github.com/blacknight2018/GoOut/utils"
+	"github.com/blacknight2018/GoProxys"
 	"net"
 	"time"
 )
@@ -10,10 +12,11 @@ import (
 var limitTime *int64
 
 func handleTCP(tcp *net.TCPConn) {
+	var ioBuffer bytes.Buffer
 	defer tcp.Close()
 	var tcpWithTarget *net.TCPConn
 	for {
-		req, ok := utils.ParseHttpRequest(tcp, time.Minute*(time.Duration(*limitTime)))
+		req, ok := utils.ParseHttpRequest(tcp, &ioBuffer)
 		if !ok {
 			return
 		}
@@ -34,31 +37,47 @@ func handleTCP(tcp *net.TCPConn) {
 			if err != nil {
 				return
 			}
-			utils.WriteHttpResponse(tcp, []byte("Done"))
+			_, err = utils.WriteHttpResponse(tcp, []byte("Done"))
+			if err != nil {
+				return
+			}
 
 			//Recv from remote
-			go func(target *net.TCPConn) {
+			go func(target *net.TCPConn, proxyClient *net.TCPConn) {
 				for {
-					var buff [1024]byte
+					var buff [1048576]byte
+					target.SetReadDeadline(time.Now().Add(time.Second * 8))
 					n, err := target.Read(buff[:])
 					if err != nil {
 						target.Close()
 						return
 					}
-					utils.WriteHttpResponse(tcp, buff[:n])
+					_, err = utils.WriteHttpResponse(proxyClient, buff[:n])
+					if err != nil {
+						target.Close()
+						return
+					}
 				}
-			}(tcpWithTarget)
+			}(tcpWithTarget, tcp)
 		} else if path == "/send" {
-			tcpWithTarget.Write(req.Body)
+			_, err := tcpWithTarget.Write(req.Body)
+			if err != nil {
+				tcpWithTarget.Close()
+				return
+			}
 		} else if path == "/" {
-			utils.WriteHttpResponseWithCt(tcp, []byte("Hello,GFW"), "text/plain; charset=utf-8")
+			_, err := utils.WriteHttpResponseWithCt(tcp, []byte("Hello,GFW"), "text/plain; charset=utf-8")
+			if err != nil {
+				tcpWithTarget.Close()
+				return
+			}
 			return
 		}
 	}
 }
 func main() {
-
-	limitTime = flag.Int64("time", 1, "Tcp read limit time (minute)")
+	GoProxys.StartWatch()
+	//limitTime = flag.Int64("time", 20, "Tcp read limit time (second)")
 	flag.Parse()
 
 	ta, err := net.ResolveTCPAddr("tcp4", ":80")

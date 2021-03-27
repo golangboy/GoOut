@@ -4,6 +4,11 @@
 
 ## 用法
 
+### 特点
+
+* 轻量小巧,极小的源代码ac
+* 高性能,不对流量进行加密解密混淆,直接转发,极小的性能损耗
+
 ### GoOut服务端
 
 ```
@@ -30,14 +35,15 @@ go build main.go
 
 ```
 Usage of main.exe:
+GoOut version
+Server 127.0.0.1:80
+Usage of main.exe:
   -global
-        是否开启全局模式,默认false,即默认只有国外流量走代理
+        是否开启全局模式,默认false,即默认只有国外流量走代理 (default true)
   -http
         使用Http代理协议,默认false,即默认使用Sock5代理协议
   -server string
         GoOut服务端地址 (default "127.0.0.1:80")
-  -time int
-        TCP连接超时时间(分钟) (default 1)
 ```
 
 > Http代理模式和Sock5代理模式默认端口都是7777
