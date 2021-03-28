@@ -44,7 +44,7 @@ func handleTCP(tcp *net.TCPConn) {
 			//Recv from remote
 			go func(target *net.TCPConn, proxyClient *net.TCPConn) {
 				for {
-					var buff [10048576]byte
+					var buff [1048576]byte
 					//target.SetReadDeadline(time.Now().Add(time.Second * 300))
 					n, err := target.Read(buff[:])
 					if err != nil {
