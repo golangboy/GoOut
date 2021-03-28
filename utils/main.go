@@ -126,6 +126,9 @@ func ParseHttpRequest(reader net.Conn, ioBuffer *bytes.Buffer) (httpReq, bool) {
 	//Get Content-Length
 	str := buff.String()
 	pos := strings.Index(str, "Content-Length")
+	if pos == -1 {
+		return ret, true
+	}
 	for j := pos; j < len(str); j++ {
 		if str[j] == '\r' {
 			break
