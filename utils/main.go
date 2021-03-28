@@ -119,7 +119,11 @@ func ParseHttpRequest(reader net.Conn, ioBuffer *bytes.Buffer) (httpReq, bool) {
 			ret.Raw = str[:pos]
 
 			spl := strings.Split(ret.Raw, "\r\n")
-			ret.Url = strings.Split(spl[0], " ")[1]
+			spt := strings.Split(spl[0], " ")
+			if len(spt) < 2 {
+				return ret, false
+			}
+			ret.Url = spt[1]
 			break
 		}
 	}
