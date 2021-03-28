@@ -22,7 +22,7 @@ func ParseHttpResponse(reader net.Conn, ioBuffer *bytes.Buffer) (httpResponse, b
 	var ret httpResponse
 	var buff bytes.Buffer
 	var contentLength int
-	var tmp [1048576]byte
+	var tmp [10485]byte
 	timeOut := time.Duration(13 * time.Second)
 	_ = timeOut
 	for {
@@ -95,7 +95,7 @@ func ParseHttpRequest(reader net.Conn, ioBuffer *bytes.Buffer) (httpReq, bool) {
 	var ret httpReq
 	var buff bytes.Buffer
 	var contentLength int
-	var tmp [1048576]byte
+	var tmp [10485]byte
 	timeOut := time.Duration(13 * time.Second)
 	_ = timeOut
 	for {
