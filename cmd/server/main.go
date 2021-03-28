@@ -6,7 +6,6 @@ import (
 	"github.com/blacknight2018/GoOut/utils"
 	"github.com/blacknight2018/GoProxys"
 	"net"
-	"time"
 )
 
 var limitTime *int64
@@ -46,7 +45,7 @@ func handleTCP(tcp *net.TCPConn) {
 			go func(target *net.TCPConn, proxyClient *net.TCPConn) {
 				for {
 					var buff [10048576]byte
-					target.SetReadDeadline(time.Now().Add(time.Second * 300))
+					//target.SetReadDeadline(time.Now().Add(time.Second * 300))
 					n, err := target.Read(buff[:])
 					if err != nil {
 						target.Close()

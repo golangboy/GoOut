@@ -78,7 +78,7 @@ func OnProxy(conn net.Conn, host string, port string) {
 	go func(client net.Conn, webSer *net.TCPConn) {
 		for {
 			var buff [10048576]byte
-			client.SetReadDeadline(time.Now().Add(time.Second * 300))
+			//client.SetReadDeadline(time.Now().Add(time.Second * 300))
 			n, err := client.Read(buff[:])
 			if err != nil {
 				client.Close()
