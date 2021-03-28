@@ -34,14 +34,13 @@ go build main.go
 ```
 
 ```
-Usage of main.exe:
 GoOut version
 Server 127.0.0.1:80
 Usage of main.exe:
   -global
-        是否开启全局模式,默认false,即默认只有国外流量走代理 (default true)
+        开启全局模式
   -http
-        使用Http代理协议,默认false,即默认使用Sock5代理协议
+        使用Http代理协议,默认使用Sock5代理协议
   -server string
         GoOut服务端地址 (default "127.0.0.1:80")
 ```

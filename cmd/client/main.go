@@ -173,8 +173,8 @@ func main() {
 	fmt.Println("Server", bdServer)
 	server = flag.String("server", bdServer, "GoOut服务端地址")
 	//limitTime = flag.Int64("time", 20, "TCP连接超时时间(秒)")
-	httpMode = flag.Bool("http", false, "使用Http代理协议,默认false,即默认使用Sock5代理协议")
-	global = flag.Bool("global", true, "是否开启全局模式,默认false,即默认只有国外流量走代理")
+	httpMode = flag.Bool("http", false, "使用Http代理协议,默认使用Sock5代理协议")
+	global = flag.Bool("global", false, "是否开启全局模式")
 	flag.Parse()
 	if server == nil || len(*server) == 0 {
 		return
