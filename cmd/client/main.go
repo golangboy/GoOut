@@ -26,6 +26,8 @@ func ioCopyWithTimeOut(dst net.Conn, src net.Conn, timeOut time.Duration) {
 		//src.SetReadDeadline(time.Now().Add(timeOut))
 		n, err := src.Read(buff[:])
 		if err != nil {
+			dst.Close()
+			src.Close()
 			return
 		}
 		dst.Write(buff[:n])
