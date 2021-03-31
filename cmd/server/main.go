@@ -12,11 +12,14 @@ var limitTime *int64
 
 func handleTCP(tcp *net.TCPConn) {
 	var ioBuffer bytes.Buffer
-	defer tcp.Close()
 	var tcpWithTarget *net.TCPConn
 	for {
 		req, ok := utils.ParseHttpRequest(tcp, &ioBuffer)
 		if !ok {
+			tcp.Close()
+			if tcpWithTarget != nil {
+				tcpWithTarget.Close()
+			}
 			return
 		}
 		path := req.Url
@@ -49,11 +52,13 @@ func handleTCP(tcp *net.TCPConn) {
 					n, err := target.Read(buff[:])
 					if err != nil {
 						target.Close()
+						proxyClient.Close()
 						return
 					}
 					n, err = utils.WriteHttpResponse(proxyClient, buff[:n])
 					if err != nil {
 						target.Close()
+						proxyClient.Close()
 						return
 					}
 				}
@@ -62,6 +67,7 @@ func handleTCP(tcp *net.TCPConn) {
 			_, err := tcpWithTarget.Write(req.Body)
 			if err != nil {
 				tcpWithTarget.Close()
+				tcp.Close()
 				return
 			}
 		} else if path == "/" {
