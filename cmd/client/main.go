@@ -103,9 +103,11 @@ func OnProxy(conn net.Conn, host string, port string) {
 	}
 }
 
+var listenPort *string
+
 func StartHttpProxyServer() {
 	go GoProxys.StartWatch()
-	b, _ := net.ResolveTCPAddr("tcp4", ":7777")
+	b, _ := net.ResolveTCPAddr("tcp4", *listenPort)
 	s := GoProxys.DefaultHttp()
 	s.HttpConnect = func(conn net.Conn, host string, port string) {
 		ip := utils.GetFirstIpByHost(host)
@@ -128,7 +130,7 @@ func StartHttpProxyServer() {
 
 func StartSock5ProxyServer() {
 	go GoProxys.StartWatch()
-	b, _ := net.ResolveTCPAddr("tcp4", ":7777")
+	b, _ := net.ResolveTCPAddr("tcp4", *listenPort)
 	s := GoProxys.DefaultSocket5()
 	s.TcpConnect = func(conn net.Conn, host string, port string) {
 		ip := utils.GetFirstIpByHost(host)
@@ -174,6 +176,7 @@ func main() {
 	fmt.Println("GoOut version", bdVersion)
 	fmt.Println("Server", bdServer)
 	server = flag.String("server", bdServer, "GoOut服务端地址")
+	listenPort = flag.String("port", ":7777", "绑定的本地端口,例如 :7777  绑定7777端口")
 	//limitTime = flag.Int64("time", 20, "TCP连接超时时间(秒)")
 	httpMode = flag.Bool("http", false, "使用Http代理协议,默认使用Sock5代理协议")
 	global = flag.Bool("global", false, "是否开启全局模式")
@@ -185,6 +188,7 @@ func main() {
 		downLoadGeoLite2()
 		geoDb, _ = geoip2.Open("GeoLite2-City.mmdb")
 	}
+	fmt.Println("GoOut服务器:" + "[" + *server + "]" + " " + "监听的本地端口[" + *listenPort + "]")
 	if *httpMode {
 		StartHttpProxyServer()
 	} else {

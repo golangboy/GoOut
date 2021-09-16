@@ -1,1 +1,1 @@
-go build -ldflags "-X main.bdVersion=0.0.0 -X main.bdServer=149.28.30.237:80" .
+go build -ldflags "-X main.bdVersion=0.0.0 -X main.bdServer=0.0.0.0:80" .
