@@ -205,7 +205,7 @@ func IsChinaIP(Ipv4 string) bool {
 			pos := strings.Index(maskIp, "/")
 			_, b, _ := net.ParseCIDR(r[i])
 			_, b1, _ := net.ParseCIDR(Ipv4 + maskIp[pos:])
-			if b.IP.Equal(b1.IP) {
+			if b != nil && b1 != nil && b.IP.Equal(b1.IP) {
 				return true
 			}
 		}
