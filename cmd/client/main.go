@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"flag"
 	"fmt"
+	"github.com/blacknight2018/GoOut/api"
 	"github.com/blacknight2018/GoOut/utils"
 	"github.com/blacknight2018/GoProxys"
 	"github.com/oschwald/geoip2-golang"
@@ -109,13 +110,14 @@ func StartHttpProxyServer() {
 	s.HttpConnect = func(conn net.Conn, host string, port string) {
 		ip := utils.GetFirstIpByHost(host)
 		if *global {
-			OnProxy(conn, host, port)
+			//OnProxy(conn, host, port)
+			api.TcpOnProxy(conn, nil, host, port, server)
 			return
 		}
 
 		if false == utils.IsChinaIP(ip) {
 			fmt.Println(host + " are not in china,through proxy")
-			OnProxy(conn, host, port)
+			api.TcpOnProxy(conn, nil, host, port, server)
 			return
 		}
 
@@ -132,12 +134,12 @@ func StartSock5ProxyServer() {
 		ip := utils.GetFirstIpByHost(host)
 		if *global {
 			fmt.Println(host)
-			OnProxy(conn, host, port)
+			api.TcpOnProxy(conn, nil, host, port, server)
 			return
 		}
 		if false == utils.IsChinaIP(ip) {
 			fmt.Println(host + " are not in china,through proxy")
-			OnProxy(conn, host, port)
+			api.TcpOnProxy(conn, nil, host, port, server)
 			return
 		}
 		OnDirect(conn, host, port)
