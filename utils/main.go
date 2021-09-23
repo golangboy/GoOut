@@ -197,3 +197,18 @@ func GetFirstIpByHost(host string) string {
 	}
 	return ""
 }
+func IsChinaIP(Ipv4 string) bool {
+	r := strings.Split(chinarouteCIDR, "\n")
+	for i, _ := range r {
+		if len(r[i]) > 0 {
+			maskIp := r[i]
+			pos := strings.Index(maskIp, "/")
+			_, b, _ := net.ParseCIDR(r[i])
+			_, b1, _ := net.ParseCIDR(Ipv4 + maskIp[pos:])
+			if b.IP.Equal(b1.IP) {
+				return true
+			}
+		}
+	}
+	return false
+}

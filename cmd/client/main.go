@@ -7,10 +7,7 @@ import (
 	"github.com/blacknight2018/GoOut/utils"
 	"github.com/blacknight2018/GoProxys"
 	"github.com/oschwald/geoip2-golang"
-	"io"
 	"net"
-	"net/http"
-	"os"
 	"time"
 )
 
@@ -115,14 +112,13 @@ func StartHttpProxyServer() {
 			OnProxy(conn, host, port)
 			return
 		}
-		if geoDb != nil {
-			record, err := geoDb.City(net.ParseIP(ip))
-			if err == nil && record.Country.Names["en"] != "China" {
-				fmt.Println(host, record.Country.Names["en"])
-				OnProxy(conn, host, port)
-				return
-			}
+
+		if false == utils.IsChinaIP(ip) {
+			fmt.Println(host + " are not in china,through proxy")
+			OnProxy(conn, host, port)
+			return
 		}
+
 		OnDirect(conn, host, port)
 	}
 	s.RunHttpProxy(b)
@@ -139,33 +135,30 @@ func StartSock5ProxyServer() {
 			OnProxy(conn, host, port)
 			return
 		}
-		if geoDb != nil {
-			record, err := geoDb.City(net.ParseIP(ip))
-			if err == nil && record.Country.Names["en"] != "China" {
-				fmt.Println(host, record.Country.Names["en"])
-				OnProxy(conn, host, port)
-				return
-			}
+		if false == utils.IsChinaIP(ip) {
+			fmt.Println(host + " are not in china,through proxy")
+			OnProxy(conn, host, port)
+			return
 		}
 		OnDirect(conn, host, port)
 	}
 	s.RunSocket5Proxy(b)
 }
 
-func downLoadGeoLite2() {
-	fmt.Println("downloading GeoIp2 db")
-	fileName := "GeoLite2-City.mmdb"
-	_, err := os.Stat(fileName)
-	if err == nil {
-		return
-	}
-	url := `https://raw.githubusercontent.com/blacknight2018/GeoLite2/master/GeoLite2-City.mmdb`
-	resp, err := http.Get(url)
-	if err == nil {
-		fs, _ := os.Create(fileName)
-		io.Copy(fs, resp.Body)
-	}
-}
+//func downLoadGeoLite2() {
+//	fmt.Println("downloading GeoIp2 db")
+//	fileName := "GeoLite2-City.mmdb"
+//	_, err := os.Stat(fileName)
+//	if err == nil {
+//		return
+//	}
+//	url := `https://raw.githubusercontent.com/blacknight2018/GeoLite2/master/GeoLite2-City.mmdb`
+//	resp, err := http.Get(url)
+//	if err == nil {
+//		fs, _ := os.Create(fileName)
+//		io.Copy(fs, resp.Body)
+//	}
+//}
 
 var bdServer, bdVersion string
 
@@ -184,10 +177,7 @@ func main() {
 	if server == nil || len(*server) == 0 {
 		return
 	}
-	if false == *global {
-		downLoadGeoLite2()
-		geoDb, _ = geoip2.Open("GeoLite2-City.mmdb")
-	}
+
 	fmt.Println("GoOut服务器:" + "[" + *server + "]" + " " + "监听的本地端口[" + *listenPort + "]")
 	if *httpMode {
 		StartHttpProxyServer()
